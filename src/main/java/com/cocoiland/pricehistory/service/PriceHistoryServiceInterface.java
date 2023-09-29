@@ -1,5 +1,5 @@
 package com.cocoiland.pricehistory.service;
 
 public interface PriceHistoryServiceInterface {
-    Double getPrice();
+    Double getPrice() throws Exception;
 }
