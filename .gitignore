@@ -31,3 +31,20 @@ build/
 
 ### VS Code ###
 .vscode/
+
+#Program
+bin
+process.pid
+*.hprof
+*.logs
+target
+.settings
+.project
+.classpath
+build
+out/
+.idea/
+scripts/.gradle/
+.gradle/
+lombok.config
+.DS_Store
