@@ -1,5 +1,6 @@
 package com.cocoiland.pricehistory.util;
 
+import com.cocoiland.pricehistory.dto.ProductIdAndPrice;
 import com.cocoiland.pricehistory.dto.UserInputDetails;
 import com.cocoiland.pricehistory.enums.EcommerceSite;
 import org.apache.commons.lang3.StringUtils;
@@ -15,14 +16,17 @@ public class Scrapper {
 
     public void fun(String userInput){
         UserInputDetails userInputDetails = getUserInputDetails(userInput);
-        switch (userInputDetails.getEcommerceSite()) {}
+        if(!userInputDetails.getIsUrlPresent()){
+            //TODO: handle this
+            System.out.println("Search the product using the input string");
+        }
 
         switch (userInputDetails.getEcommerceSite()) {
-            case AMAZON_IN:
-                System.out.println("Selected site: Flipkart");
-                break;
             case FLIPKART_COM:
                 System.out.println("Selected site: Amazon India");
+                break;
+            case AMAZON_IN:
+                System.out.println("Selected site: Flipkart");
                 break;
             default:
                 System.out.println("Invalid selection");
@@ -67,6 +71,39 @@ public class Scrapper {
         return -1.0;
     }
 
+    public ProductIdAndPrice getProductIdAndPriceFlipkartCom(String url) throws IOException {
+        ProductIdAndPrice productIdAndPrice = new ProductIdAndPrice();
+        Document document = Jsoup.connect(url).get();
+
+        //Scraping pid
+        String pageUrl = document.location();
+        String pid = extractProductIdFlipkart(pageUrl);
+        productIdAndPrice.setPid(pid);
+
+        //Scarping product price
+        Element element = document.getElementsByClass("_30jeq3 _16Jk6d").first();
+        if(element != null && StringUtils.isNotEmpty(element.text())) {
+            String price = element.text();
+            price = price.substring(1);
+            price = price.replaceAll(",", "");
+            productIdAndPrice.setPrice(Double.parseDouble(price));
+            return productIdAndPrice;
+        }
+        return productIdAndPrice;
+    }
+
+    private String extractProductIdFlipkart(String url){
+        if(url!=null && url.contains("?pid=")){
+            int startIndex = url.indexOf("?pid=");
+            if(startIndex != -1){
+                startIndex += 5;
+                return url.substring(startIndex, startIndex+16);
+            }
+        }
+        return "";
+    }
+
+
     private String cleanUrl(String input, int startingIndex) {
         input = input.substring(startingIndex);
         int garbage_index = input.indexOf(" ");
@@ -74,6 +111,8 @@ public class Scrapper {
             return input;
         return input.substring(garbage_index);
     }
+
+
 }
 
 

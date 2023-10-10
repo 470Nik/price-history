@@ -19,7 +19,6 @@ public class ProductDetails {
     private EcommerceSite ecommerceSite;
     private String pid; //Ecommerce Site id
     private String name; //product_name
-//    private String price;
     private String description;
 //    private Float rating;
     private Date createAt;

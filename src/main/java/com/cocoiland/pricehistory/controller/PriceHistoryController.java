@@ -13,7 +13,7 @@ public class PriceHistoryController {
     PriceHistoryServiceInterface priceHistoryService;
 
     @GetMapping("/test")
-    public Double test() throws Exception {
+    public String test() throws Exception {
         return priceHistoryService.getPrice();
     }
 }
