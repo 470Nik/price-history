@@ -1,9 +1,9 @@
 package com.cocoiland.pricehistory.service;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
+import com.cocoiland.pricehistory.constants.Constants;
 import com.cocoiland.pricehistory.dto.ProductIdAndPrice;
 import com.cocoiland.pricehistory.dto.UserInputDetails;
 import com.cocoiland.pricehistory.entity.ProductDetails;
@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @Slf4j
@@ -45,11 +46,23 @@ public class PriceHistoryService implements PriceHistoryServiceInterface{
         }
 
         ProductDetails productDetails = fetchProductDetailsFromES(productIdAndPrice.getPid());
-        if(productDetails == null){ //TODO: fetch product details if not available in index or hasn't been updated in last 10 days.
+        if(productDetails == null){ //If the product detail is not alredy present in ES => add it
             ProductDetails fetchedProductDetails = scrapper.getProductDetailsFromFlipkartCom(userInputDetails.getUrl());
             fetchedProductDetails.setCreatedAt(new Date());
+            fetchedProductDetails.setCreatedBy(Constants.SYSTEM);
+            //addProductDetailsToES(fetchedProductDetails)
         }
-        return productDetails.toString();
+        //If the product details are outdated => update it.
+        else if(productDetails.getUpdatedAt() == null || TimeUnit.MILLISECONDS.toDays(new Date().getTime() - productDetails.getUpdatedAt().getTime()) > Constants.UPDATE_INTERVAL){
+            ProductDetails fetchedProductDetails = scrapper.getProductDetailsFromFlipkartCom(userInputDetails.getUrl());
+            productDetails.setRating(fetchedProductDetails.getRating());
+            productDetails.setName(fetchedProductDetails.getName());
+            productDetails.setImageUrl(fetchedProductDetails.getImageUrl());
+            productDetails.setUpdatedAt(new Date());
+            productDetails.setUpdatedBy(Constants.SYSTEM);
+            //updateProductDetailsToES(productDetails)
+        }
+        return productDetails.toString();//TODO: complete this later
     }
 
     private ProductDetails fetchProductDetailsFromES(String pid) throws IOException {
