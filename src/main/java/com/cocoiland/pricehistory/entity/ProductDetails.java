@@ -12,17 +12,16 @@ import java.util.Date;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Document(indexName = "products")
 public class ProductDetails {
-    @Id
-    private String id;
+    private String id; //unique identifier
     private EcommerceSite ecommerceSite;
     private String pid; //Ecommerce Site id
     private String name; //product_name
     private String description;
-//    private Float rating;
-    private Date createAt;
+    private Float rating;
+    private Date createdAt;
     private String createdBy;
     private Date updatedAt;
     private String updatedBy;
+    private String imageUrl;
 }
