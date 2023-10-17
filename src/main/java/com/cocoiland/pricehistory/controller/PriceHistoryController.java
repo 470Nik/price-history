@@ -14,6 +14,6 @@ public class PriceHistoryController {
 
     @GetMapping("/test")
     public String test() throws Exception {
-        return priceHistoryService.getPrice();
+        return priceHistoryService.getProductDetails();
     }
 }

@@ -14,7 +14,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class ElasticsearchConfig {
     // URL and API key
-    String serverUrl = "https://my-deployment.es.ap-south-1.aws.elastic-cloud.com";
+    String serverUrl = "https://ap-south-1.aws.elastic-cloud.com";
     String apiKey = "apiKey";
 
     @Bean

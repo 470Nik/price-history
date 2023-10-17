@@ -1,0 +1,75 @@
+//Creating product-details index
+PUT /product-details
+{
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 2
+  },
+  "mappings": {
+    "properties": {
+      "id": {
+        "type": "keyword"
+      },
+      "platform": {
+        "type": "keyword"
+      },
+      "pid": {
+        "type": "keyword"
+      },
+      "name": {
+        "type": "text"
+      },
+      "description": {
+        "type": "text"
+      },
+      "rating": {
+        "type": "float"
+      },
+      "imageUrl": {
+        "type": "text"
+      },
+      "createdAt": {
+        "type": "date"
+      },
+      "createdBy": {
+        "type": "keyword"
+      },
+      "updatedAt": {
+        "type": "date"
+      },
+      "updatedBy": {
+        "type": "keyword"
+      }
+    }
+  }
+}
+
+
+//Creating Alias of the given ES index (product-details)
+POST /_aliases
+{
+  "actions": [
+    {
+      "add": {
+        "index": "product-details",
+        "alias": "product-details-alias"
+      }
+    }
+  ]
+}
+
+
+//Inserting documents into the index
+POST /product-details/_doc/flipkart_in_7894561230514
+{
+  "platform": "flipkart_in",
+  "pid": "7894561230514",
+  "name": "Product Name",
+  "description": "Product Description",
+  "rating": 4.5,
+  "imageUrl": "http://example.com/image.jpg",
+  "createdAt": "2023-10-11T12:00:00",
+  "createdBy": "User123",
+  "updatedAt": "2023-10-11T14:30:00",
+  "updatedBy": "User456"
+}

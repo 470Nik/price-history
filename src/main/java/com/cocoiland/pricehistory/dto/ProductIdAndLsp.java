@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class ProductIdAndPrice {
-    private String pid;
-    private Double price;
+public class ProductIdAndLsp {
+    private String pid; //product id
+    private Double lsp; //last selling price
 }
