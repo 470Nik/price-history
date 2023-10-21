@@ -1,17 +1,16 @@
 package com.cocoiland.pricehistory.service;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import co.elastic.clients.elasticsearch.core.CreateResponse;
-import co.elastic.clients.elasticsearch.core.IndexRequest;
-import co.elastic.clients.elasticsearch.core.IndexResponse;
-import co.elastic.clients.elasticsearch.core.SearchResponse;
+import co.elastic.clients.elasticsearch.core.*;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import com.cocoiland.pricehistory.constants.Constants;
 import com.cocoiland.pricehistory.dto.ProductIdAndLsp;
 import com.cocoiland.pricehistory.dto.UserInputDetails;
 import com.cocoiland.pricehistory.entity.ProductDetails;
 import com.cocoiland.pricehistory.enums.Platform;
+import com.cocoiland.pricehistory.util.EcommerceSiteFactory;
 import com.cocoiland.pricehistory.util.Scrapper;
+import com.cocoiland.pricehistory.util.ecom.EcommerceSite;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -29,57 +28,84 @@ public class PriceHistoryService implements PriceHistoryServiceInterface{
     ElasticsearchClient esClient;
 
     /**
-     * This function fetches the product data from web (based on ecommerce site) and Elasticsearch
+     * This method fetches the product details from web (using scraper, based on ecommerce site) and Elasticsearch
      * and servers the user with that data.
      *
      * @return TODO: write documented comments
      * @throws IOException
      */
     @Override
-    public String getProductDetails() throws IOException { //TODO: handle exceptions & write advisor
-        String userInput = "I https://www.flipkart.com/fossil-grant-spor-analog-watch-men/p/itmf3zh3kuxnqkct?pid=WATET6SFGZW2EKVG&lid=LSTWATET6SFGZW2EKVGAYWSUV&marketplace=FLIPKART&fm=factBasedRecommendation%2FrecentlyViewed&iid=R%3Arv%3Bpt%3App%3Buid%3A5db15da5-6c8c-11ee-b154-8d7f909d8d6e%3B.WATET6SFGZW2EKVG&ppt=pp&ppn=pp&ssid=1lmvgg4l1s0000001697506057026&otracker=pp_reco_Recently%2BViewed_5_36.productCard.RECENTLY_VIEWED_FOSSIL%2BGRANT%2BSPOR%2BAnalog%2BWatch%2B%2B-%2BFor%2BMen_WATET6SFGZW2EKVG_factBasedRecommendation%2FrecentlyViewed_4&otracker1=pp_reco_PINNED_factBasedRecommendation%2FrecentlyViewed_Recently%2BViewed_DESKTOP_HORIZONTAL_productCard_cc_5_NA_view-all&cid=WATET6SFGZW2EKVG https://dl.flipkart.com/s/IrlqW3NNNN please find it's price history";
+    public String getProductDetails(String userInput) throws IOException { //TODO: handle exceptions & write advisor
+        //Breaking down the user input
         UserInputDetails userInputDetails = getUserInputDetails(userInput);
-
+        EcommerceSite ecommerceSite = null;
         ProductIdAndLsp productIdAndLsp = null;
 
-        if(!userInputDetails.getIsUrlPresent()){ //Checking if user input doesn't a valid URL => search for product using String.
-            //TODO: handle this
+        //If user's input doesn't have a valid URL => search for product using String.
+        if(!userInputDetails.getIsUrlPresent()){
+            //TODO: handle this in future => implement search on product name
             System.out.println("Search the product using the input string");
-            return "URL Not found";
+            return "No supported URL found! Please check your input";
         }
-        else{//If user input has URL =>
-            productIdAndLsp = findProductIdAndPrice(userInputDetails);
+        //If user's input has URL
+        else{
+            //using factory method pattern for handling type of ecommerce site
+            ecommerceSite = EcommerceSiteFactory.getEcommerceSite(userInputDetails);
+            //fetching product's id and product's Last selling price
+            productIdAndLsp = ecommerceSite.findProductIdAndPrice();
         }
-
         if(productIdAndLsp == null) {
             //TODO: handle this
             return null;
         }
 
         ProductDetails productDetails = fetchProductDetailsFromES_using_pid_and_platform(productIdAndLsp.getPid(), userInputDetails.getPlatform());
-        if(productDetails == null){ //If the product detail is not alredy present in ES => add it
-            ProductDetails fetchedProductDetails = scrapper.getProductDetailsFromFlipkartCom(userInputDetails.getUrl());
-            fetchedProductDetails.setPlatform(Platform.FLIPKART_COM.getUrl());
-            fetchedProductDetails.setPid(productIdAndLsp.getPid());
-            fetchedProductDetails.setId(fetchedProductDetails.getPlatform() + "_" + fetchedProductDetails.getPid());
-            fetchedProductDetails.setDescription("No Description Available");
-            fetchedProductDetails.setCreatedAt(new Date());
-            fetchedProductDetails.setCreatedBy(Constants.SYSTEM);
-            addProductDetailsToES(fetchedProductDetails);
-            return fetchedProductDetails.toString();
+        //If the product detail is not already present in ES => add it
+        if(productDetails == null){
+            return scrapeProductDetailsAndAddToEs(ecommerceSite, productIdAndLsp);
         }
         //If the product details are outdated => update it.
-        else if(productDetails.getUpdatedAt() == null || TimeUnit.MILLISECONDS.toDays(new Date().getTime() - productDetails.getUpdatedAt().getTime()) > Constants.UPDATE_INTERVAL){
-//            ProductDetails fetchedProductDetails = scrapper.getProductDetailsFromFlipkartCom(userInputDetails.getUrl());
-//            productDetails.setRating(fetchedProductDetails.getRating());
-//            productDetails.setName(fetchedProductDetails.getName());
-//            productDetails.setImageUrl(fetchedProductDetails.getImageUrl());
-//            productDetails.setUpdatedAt(new Date());
-//            productDetails.setUpdatedBy(Constants.SYSTEM);
-//            //updateProductDetailsToES(productDetails)
+        else if(productDetails.getUpdatedAt() == null || TimeUnit.MILLISECONDS.toDays(new Date().getTime() - productDetails.getUpdatedAt().getTime()) >= Constants.UPDATE_INTERVAL){
+            return scrapeProductDetailsAndUpdateToES(ecommerceSite, productDetails);
         }
 
-        return productDetails.toString();//TODO: complete this later
+        return productDetails.toString();
+    }
+
+    private String scrapeProductDetailsAndUpdateToES(EcommerceSite ecommerceSite, ProductDetails productDetails) throws IOException {
+        //            if(productDetails.getUpdatedAt() != null)
+//                System.out.println("Nikhil diff in time: " + TimeUnit.MILLISECONDS.toDays(new Date().getTime() - productDetails.getUpdatedAt().getTime()) );
+        ProductDetails fetchedProductDetails = ecommerceSite.getProductDetailsFromEcommerceSite();
+        productDetails.setRating(fetchedProductDetails.getRating());
+        productDetails.setName(fetchedProductDetails.getName());
+        productDetails.setImageUrl(fetchedProductDetails.getImageUrl());
+        productDetails.setUpdatedAt(new Date());
+        productDetails.setUpdatedBy(Constants.SYSTEM);
+        updateProductDetailsToES(productDetails);
+        return productDetails.toString();
+    }
+
+    private String scrapeProductDetailsAndAddToEs(EcommerceSite ecommerceSite, ProductIdAndLsp productIdAndLsp) throws IOException {
+        ProductDetails fetchedProductDetails = ecommerceSite.getProductDetailsFromEcommerceSite();
+        fetchedProductDetails.setPlatform(Platform.FLIPKART_COM.getUrl());
+//          TODO: see if builder pattern can be used here
+        fetchedProductDetails.setPid(productIdAndLsp.getPid());
+        fetchedProductDetails.setId(fetchedProductDetails.getPlatform() + "_" + fetchedProductDetails.getPid());
+        fetchedProductDetails.setDescription("No Description Available");
+        fetchedProductDetails.setCreatedAt(new Date());
+        fetchedProductDetails.setCreatedBy(Constants.SYSTEM);
+        addProductDetailsToES(fetchedProductDetails);
+        return fetchedProductDetails.toString();
+    }
+
+    private void updateProductDetailsToES(ProductDetails fetchedProductDetails) throws IOException {
+        UpdateResponse response = esClient.update(u -> u
+                .index("product-details") //TODO: replace this value with variable
+                .id(fetchedProductDetails.getId())
+                .doc(fetchedProductDetails),
+                ProductDetails.class);
+
+        System.out.println("NikStatus update: " + response.id() + " and: " + response.toString());
     }
 
     private void addProductDetailsToES(ProductDetails fetchedProductDetails) throws IOException {
@@ -88,7 +114,7 @@ public class PriceHistoryService implements PriceHistoryServiceInterface{
                 .id(fetchedProductDetails.getId())
                 .document(fetchedProductDetails));
 
-        System.out.println("NikStatus: " + response.id() + " and: " + response.toString());
+        System.out.println("NikStatus add: " + response.id() + " and: " + response.toString());
     }
 
 //    @Override
@@ -160,54 +186,12 @@ public class PriceHistoryService implements PriceHistoryServiceInterface{
             productDetails.setId(hit.id());
             return productDetails;
         }
-
-
-
-
-//        SearchResponse<ProductDetails> searchResponse = esClient.search(s -> s
-//                        .index("product-details-alias") //TODO: replace this value with variable
-//                        .query(q -> q
-//                                .term(t -> t
-//                                        .field("pid") //TODO: replace this value with variable
-//                                        .value(v -> v.stringValue(pid))
-//                                )),
-//                ProductDetails.class);
-//
-//        for (Hit<ProductDetails> hit: searchResponse.hits().hits()) {
-//            ProductDetails productDetails = hit.source();
-//            productDetails.setId(hit.id());
-//            return productDetails;
-//        }
-//        SearchResponse<ProductDetails> searchResponse = esClient.search(s -> s
-//                        .index("product-details-alias") //TODO: replace this value with variable
-//                        .query(q -> q
-//                                .term(t -> t
-//                                        .field("pid") //TODO: replace this value with variable
-//                                        .value(v -> v.stringValue(pid))
-//                                ))
-//                        .source(sb -> sb
-//                                .fields(f -> f.add("_id"))) // Fetch the _id field
-//                , ProductDetails.class);
-
-//        SearchRequest sr = SearchRequest.of(r -> r
-//                .index("product-details-alias")
-//                .source(s -> s.fetch(true)));
-//
-//        System.out.println("Request: " + sr);
-//
-//        try {
-//            var response = this.esClient.search(sr, Void.class);
-//            response.hits().hits().forEach(hit -> {
-//                System.out.println("ID: " + hit.id());
-//            });
-//        } catch (IOException ignored) {
-//        }
         return null;
     }
 
     private UserInputDetails getUserInputDetails(String userInput) {
         UserInputDetails userInputDetails = new UserInputDetails();
-        if(userInput == null) {
+        if(userInput == null || userInput.isEmpty()) {
             //TODO: handle this
             return userInputDetails;
         }
@@ -220,6 +204,7 @@ public class PriceHistoryService implements PriceHistoryServiceInterface{
                 userInputDetails.setIsUrlPresent(true);
                 userInputDetails.setPlatform(platform);
                 userInputDetails.setUrl(cleanUrl(userInput, startingIndex));
+                System.out.println("Nikhil Here's the url: " + cleanUrl(userInput, startingIndex));
                 return userInputDetails;
             }
         }
@@ -229,6 +214,9 @@ public class PriceHistoryService implements PriceHistoryServiceInterface{
         userInputDetails.setSearchText(userInput);
         return userInputDetails;
     }
+
+    //If input is: "Hi I am flipkart.com/abcd how are you"
+    //then, it will be converted to: "flipkart.com/abcd"
     private String cleanUrl(String input, int startingIndex) {
         input = input.substring(startingIndex);
         int garbage_index = input.indexOf(" ");

@@ -1,12 +1,17 @@
 package com.cocoiland.pricehistory.controller;
 
+import com.cocoiland.pricehistory.request.UserInput;
 import com.cocoiland.pricehistory.service.PriceHistoryServiceInterface;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
+
+import java.io.IOException;
 
 @RestController
+@Validated
 @RequestMapping("/v1")
 public class PriceHistoryController {
     @Autowired
@@ -14,6 +19,19 @@ public class PriceHistoryController {
 
     @GetMapping("/test")
     public String test() throws Exception {
-        return priceHistoryService.getProductDetails();
+        return "Application is live!";
+    }
+
+
+    @GetMapping(value = "product-details")
+    public @ResponseBody
+    ResponseEntity<Object> getProductDetails(@Validated @RequestBody UserInput eqChartData) throws IOException {
+        return new ResponseEntity<>(priceHistoryService.getProductDetails(eqChartData.getUserInput()), HttpStatus.OK);
+    }
+
+    @GetMapping(value = "product-price")
+    public @ResponseBody
+    ResponseEntity<Object> getProductPriceHistory(@Validated @RequestBody UserInput eqChartData) throws IOException {
+        return new ResponseEntity<>(priceHistoryService.getProductDetails(eqChartData.getUserInput()), HttpStatus.OK);
     }
 }
