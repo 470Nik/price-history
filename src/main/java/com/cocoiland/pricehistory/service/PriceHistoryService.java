@@ -2,6 +2,7 @@ package com.cocoiland.pricehistory.service;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.FieldSort;
+import co.elastic.clients.elasticsearch._types.Result;
 import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch.core.*;
 import co.elastic.clients.elasticsearch.core.search.Hit;
@@ -25,9 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -72,7 +71,26 @@ public class PriceHistoryService implements PriceHistoryServiceInterface{
             return null;
         }
 
+//        ProductDetails productDetails = fetchProductDetailsFromES_using_pid_and_platform(productIdAndLsp.getPid(), userInputDetails.getPlatform());
+//        //If the product detail is not already present in ES => add it
+//        if(productDetails == null){
+//            return scrapeProductDetailsAndAddToEs(ecommerceSite, productIdAndLsp, productDetailsResponse);
+//        }
+//        //If the product details are outdated => update it.
+//        else if(productDetails.getUpdatedAt() == null || TimeUnit.MILLISECONDS.toDays(new Date().getTime() - productDetails.getUpdatedAt().getTime()) >= Constants.PRODUCT_DETAILS_UPDATE_INTERVAL_IN_DAYS){
+//            return scrapeProductDetailsAndUpdateToES(ecommerceSite, productDetails, productIdAndLsp, productDetailsResponse);
+//        }
+//        BeanUtils.copyProperties(productDetails, productDetailsResponse);
+//        if(productDetails.getLspUpdatedAt() == null || TimeUnit.MILLISECONDS.toHours(new Date().getTime() - productDetails.getLspUpdatedAt().getTime()) >= Constants.PRICE_UPDATE_INTERVAL_IN_HOURS) {
+//            addProductCurrentPriceToES(productIdAndLsp.getLsp(), productDetails.getId());
+//            if(productDetails.getLspUpdatedAt() != null)
+//                System.out.println("Sent from site 5: " + TimeUnit.MILLISECONDS.toHours(new Date().getTime() - productDetails.getLspUpdatedAt().getTime()));
+//            //TODO: update should aslo be done here => see this //update lspUpdate time to ES
+//        }
+
+
         ProductDetails productDetails = fetchProductDetailsFromES_using_pid_and_platform(productIdAndLsp.getPid(), userInputDetails.getPlatform());
+        System.out.println("Main fetched productdetails from ES: " + productDetails.toString());
         //If the product detail is not already present in ES => add it
         if(productDetails == null){
             return scrapeProductDetailsAndAddToEs(ecommerceSite, productIdAndLsp, productDetailsResponse);
@@ -81,13 +99,25 @@ public class PriceHistoryService implements PriceHistoryServiceInterface{
         else if(productDetails.getUpdatedAt() == null || TimeUnit.MILLISECONDS.toDays(new Date().getTime() - productDetails.getUpdatedAt().getTime()) >= Constants.PRODUCT_DETAILS_UPDATE_INTERVAL_IN_DAYS){
             return scrapeProductDetailsAndUpdateToES(ecommerceSite, productDetails, productIdAndLsp, productDetailsResponse);
         }
-        BeanUtils.copyProperties(productDetails, productDetailsResponse);
-        if(productDetails.getLspUpdatedAt() == null || TimeUnit.MILLISECONDS.toHours(new Date().getTime() - productDetails.getLspUpdatedAt().getTime()) >= Constants.PRICE_UPDATE_INTERVAL_IN_HOURS) {
-            addProductCurrentPriceToES(productIdAndLsp.getLsp(), productDetails.getId());
-            if(productDetails.getLspUpdatedAt() != null)
-                System.out.println("Sent from site 5: " + TimeUnit.MILLISECONDS.toHours(new Date().getTime() - productDetails.getLspUpdatedAt().getTime()));
-            //TODO: update should aslo be done here => see this //update lspUpdate time to ES
+
+        //if the product price has changed => update it.
+        if(!Objects.equals(productDetails.getLsp(), productIdAndLsp.getLsp())) {
+            //adding last selling price to the price history index
+            boolean isPriceUpdated = addProductCurrentPriceToES(productIdAndLsp.getLsp(), productDetails.getId());
+            //adding the updated price to product details index for tracking purpose
+            if (isPriceUpdated) {
+                HashMap jsonMap = new HashMap();
+                jsonMap.put("lsp", productIdAndLsp.getLsp());
+
+                UpdateResponse response = esClient.update(u -> u
+                                .index("product-details") //TODO: replace this value with variable
+                                .id(productDetails.getId())
+                                .doc(jsonMap),
+                        ProductDetails.class);
+            }
         }
+        System.out.println("Nikhil see this: " + productDetails.toString());
+        BeanUtils.copyProperties(productDetails, productDetailsResponse);
         return productDetailsResponse;
     }
 
@@ -106,7 +136,7 @@ public class PriceHistoryService implements PriceHistoryServiceInterface{
                 userInputDetails.setIsUrlPresent(true);
                 userInputDetails.setPlatform(platform);
                 userInputDetails.setUrl(cleanUrl(userInput, startingIndex));
-                System.out.println("Nikhil Here's the url: " + cleanUrl(userInput, startingIndex));
+//                System.out.println("Nikhil Here's the url: " + cleanUrl(userInput, startingIndex));
                 return userInputDetails;
             }
         }
@@ -129,7 +159,7 @@ public class PriceHistoryService implements PriceHistoryServiceInterface{
         }
     }
     private ProductDetails fetchProductDetailsFromES_using_pid_and_platform(String pid, Platform platform) throws IOException {
-        System.out.println("Nikhil: " + pid + " and plat: " + platform.getUrl());
+//        System.out.println("Nikhil: " + pid + " and plat: " + platform.getUrl());
 
         SearchResponse<ProductDetails> searchResponse = esClient.search(s -> s
                         .index("product-details") //TODO: replace this value with variable
@@ -158,7 +188,9 @@ public class PriceHistoryService implements PriceHistoryServiceInterface{
         return null;
     }
     private ProductDetailsResponse scrapeProductDetailsAndAddToEs(EcommerceSite ecommerceSite, ProductIdAndLsp productIdAndLsp, ProductDetailsResponse productDetailsResponse) throws IOException {
+        //scrape product details from ecommerceSite
         ProductDetails fetchedProductDetails = ecommerceSite.getProductDetailsFromEcommerceSite();
+        System.out.println("fetched product details: " + fetchedProductDetails.toString());
         fetchedProductDetails.setPlatform(Platform.FLIPKART_COM.getUrl());
 //          TODO: see if builder pattern can be used here
         fetchedProductDetails.setPid(productIdAndLsp.getPid());
@@ -166,10 +198,16 @@ public class PriceHistoryService implements PriceHistoryServiceInterface{
         fetchedProductDetails.setDescription("No Description Available");
         fetchedProductDetails.setCreatedAt(new Date());
         fetchedProductDetails.setCreatedBy(Constants.SYSTEM);
+
+        //adding last selling price to the price history index
+        boolean isPriceUpdated = addProductCurrentPriceToES(productIdAndLsp.getLsp(), fetchedProductDetails.getId());
+        //adding the updated price to product details index for tracking purpose
+        if(isPriceUpdated){
+            fetchedProductDetails.setLsp(productIdAndLsp.getLsp());
+        }
         addProductDetailsToES(fetchedProductDetails);
         BeanUtils.copyProperties(fetchedProductDetails, productDetailsResponse);
-        addProductCurrentPriceToES(productIdAndLsp.getLsp(), fetchedProductDetails.getId());
-        System.out.println("Sent from site 3");
+        System.out.println("Nikhil: Sent from site 3");
         return productDetailsResponse;
     }
     private ProductDetailsResponse scrapeProductDetailsAndUpdateToES(EcommerceSite ecommerceSite, ProductDetails productDetails, ProductIdAndLsp productIdAndLsp,ProductDetailsResponse productDetailsResponse) throws IOException {
@@ -179,12 +217,19 @@ public class PriceHistoryService implements PriceHistoryServiceInterface{
         productDetails.setImageUrl(fetchedProductDetails.getImageUrl());
         productDetails.setUpdatedAt(new Date());
         productDetails.setUpdatedBy(Constants.SYSTEM);
+
+        //if the product price has changed => update it.
+        if(!Objects.equals(productDetails.getLsp(), productIdAndLsp.getLsp())) {
+            //adding last selling price to the price history index
+            boolean isPriceUpdated = addProductCurrentPriceToES(productIdAndLsp.getLsp(), productDetails.getId());
+            //adding the updated price to product details index for tracking purpose
+            System.out.println("Midway price update status: " + isPriceUpdated);
+            if (isPriceUpdated)
+                productDetails.setLsp(productIdAndLsp.getLsp());
+        }
+        System.out.println("Midway: " + productDetails.toString() + "\n and Midway: lsp curr: " + productIdAndLsp.toString());
         updateProductDetailsToES(productDetails);
         BeanUtils.copyProperties(productDetails, productDetailsResponse);
-        if(fetchedProductDetails.getLspUpdatedAt() == null || TimeUnit.MILLISECONDS.toHours(new Date().getTime() - fetchedProductDetails.getLspUpdatedAt().getTime()) >= Constants.PRICE_UPDATE_INTERVAL_IN_HOURS) {
-            addProductCurrentPriceToES(productIdAndLsp.getLsp(), productDetails.getId());
-            System.out.println("Sent from site 1");
-        }
         return productDetailsResponse;
     }
     private void updateProductDetailsToES(ProductDetails fetchedProductDetails) throws IOException {
@@ -197,7 +242,7 @@ public class PriceHistoryService implements PriceHistoryServiceInterface{
         System.out.println("NikStatus update: " + response.id() + " and: " + response.toString());
     }
 
-    private void addProductCurrentPriceToES(Double price, String product_id) throws IOException {
+    private boolean addProductCurrentPriceToES(Double price, String product_id) throws IOException {
         long currentTimeInMillis = java.lang.System.currentTimeMillis();
         Date date = new Date(currentTimeInMillis);
         ProductPriceDto productPriceDto = ProductPriceDto.builder()
@@ -210,7 +255,8 @@ public class PriceHistoryService implements PriceHistoryServiceInterface{
                 .id(product_id + "_" + currentTimeInMillis)
                 .document(productPriceDto));
 
-        System.out.println("NikStatus update price: " + response.id() + " and: " + response.toString());
+        System.out.println("NikStatus update price: " + response.id() + " and: " + response.result().equals(Result.Created));
+        return response.result().equals(Result.Created);
     }
 
     private void addProductDetailsToES(ProductDetails fetchedProductDetails) throws IOException {
