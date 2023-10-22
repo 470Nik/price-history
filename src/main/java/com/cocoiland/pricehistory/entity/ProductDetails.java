@@ -1,6 +1,5 @@
 package com.cocoiland.pricehistory.entity;
 
-import com.cocoiland.pricehistory.enums.Platform;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -20,9 +19,9 @@ public class ProductDetails {
     private String description;
     private Float rating;
     private String imageUrl;
+    private Date lspUpdatedAt;
     private Date createdAt;
     private String createdBy;
     private Date updatedAt;
     private String updatedBy;
-
 }
