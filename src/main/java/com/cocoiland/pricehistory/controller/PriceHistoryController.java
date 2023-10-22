@@ -1,5 +1,6 @@
 package com.cocoiland.pricehistory.controller;
 
+import com.cocoiland.pricehistory.request.ProductPriceHistoryRequest;
 import com.cocoiland.pricehistory.request.UserInput;
 import com.cocoiland.pricehistory.service.PriceHistoryServiceInterface;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,9 +30,9 @@ public class PriceHistoryController {
         return new ResponseEntity<>(priceHistoryService.getProductDetails(eqChartData.getUserInput()), HttpStatus.OK);
     }
 
-    @GetMapping(value = "product-price")
+    @GetMapping(value = "product-price-history")
     public @ResponseBody
-    ResponseEntity<Object> getProductPriceHistory(@Validated @RequestBody UserInput eqChartData) throws IOException {
-        return new ResponseEntity<>(priceHistoryService.getProductDetails(eqChartData.getUserInput()), HttpStatus.OK);
+    ResponseEntity<Object> getProductPriceHistory(@Validated @RequestBody ProductPriceHistoryRequest productPriceHistoryRequest) throws IOException {
+        return new ResponseEntity<>(priceHistoryService.getProductPriceHistory(productPriceHistoryRequest), HttpStatus.OK);
     }
 }

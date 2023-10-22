@@ -8,14 +8,24 @@ import org.springframework.validation.annotation.Validated;
 
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
+import java.time.LocalDate;
 
 @Data
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
 @Validated
-public class UserInput {
-    @NotNull(message = "User input can't be null")
-    @NotEmpty(message = "User input can't be empty")
-    @JsonProperty("input")
-    private String userInput;
+public class ProductPriceHistoryRequest {
+    @NotEmpty
+    @NotNull
+    @JsonProperty("product_id")
+    private String productId;
+
+    @NotNull
+    @JsonProperty("from_date")
+    private LocalDate fromDate;
+
+    @JsonProperty("to_date")
+    @NotNull
+    private LocalDate toDate;
+
 }

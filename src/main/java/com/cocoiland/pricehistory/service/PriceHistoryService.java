@@ -1,13 +1,21 @@
 package com.cocoiland.pricehistory.service;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.FieldSort;
+import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch.core.*;
 import co.elastic.clients.elasticsearch.core.search.Hit;
+import co.elastic.clients.elasticsearch.core.search.SourceConfig;
+import co.elastic.clients.elasticsearch.transform.Source;
+import co.elastic.clients.json.JsonData;
 import com.cocoiland.pricehistory.constants.Constants;
 import com.cocoiland.pricehistory.dto.ProductIdAndLsp;
 import com.cocoiland.pricehistory.dto.UserInputDetails;
 import com.cocoiland.pricehistory.entity.ProductDetails;
 import com.cocoiland.pricehistory.enums.Platform;
+import com.cocoiland.pricehistory.request.ProductPriceHistoryRequest;
+import com.cocoiland.pricehistory.response.PricePacket;
+import com.cocoiland.pricehistory.response.ProductPriceResponse;
 import com.cocoiland.pricehistory.util.EcommerceSiteFactory;
 import com.cocoiland.pricehistory.util.Scrapper;
 import com.cocoiland.pricehistory.util.ecom.EcommerceSite;
@@ -15,13 +23,18 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.naming.directory.SearchResult;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Service
 @Slf4j
 public class PriceHistoryService implements PriceHistoryServiceInterface{
+
     @Autowired
     Scrapper scrapper;
     @Autowired
@@ -117,45 +130,39 @@ public class PriceHistoryService implements PriceHistoryServiceInterface{
         System.out.println("NikStatus add: " + response.id() + " and: " + response.toString());
     }
 
-//    @Override
-//    public String getPrice() throws Exception {
-//        String userInput = "I https://dl.flipkart.com/s/IrlqW3NNNN please find it's price history";
-//
-//        UserInputDetails userInputDetails = getUserInputDetails(userInput);
-//        ProductIdAndLsp productIdAndLsp = null;
-//        if(!userInputDetails.getIsUrlPresent()){
-//            //TODO: handle this
-//            System.out.println("Search the product using the input string");
-//            return "URL Not found";
-//        }
-//        else{
-//            productIdAndLsp = findProductIdAndPrice(userInputDetails);
-//        }
-//
-//        if(productIdAndLsp == null) {
-//            //TODO: handle this
-//            return null;
-//        }
-//
-//        ProductDetails productDetails = fetchProductDetailsFromES(productIdAndLsp.getPid());
-//        if(productDetails == null){ //If the product detail is not alredy present in ES => add it
-//            ProductDetails fetchedProductDetails = scrapper.getProductDetailsFromFlipkartCom(userInputDetails.getUrl());
-//            fetchedProductDetails.setCreatedAt(new Date());
-//            fetchedProductDetails.setCreatedBy(Constants.SYSTEM);
-//            //addProductDetailsToES(fetchedProductDetails)
-//        }
-//        //If the product details are outdated => update it.
-//        else if(productDetails.getUpdatedAt() == null || TimeUnit.MILLISECONDS.toDays(new Date().getTime() - productDetails.getUpdatedAt().getTime()) > Constants.UPDATE_INTERVAL){
-//            ProductDetails fetchedProductDetails = scrapper.getProductDetailsFromFlipkartCom(userInputDetails.getUrl());
-//            productDetails.setRating(fetchedProductDetails.getRating());
-//            productDetails.setName(fetchedProductDetails.getName());
-//            productDetails.setImageUrl(fetchedProductDetails.getImageUrl());
-//            productDetails.setUpdatedAt(new Date());
-//            productDetails.setUpdatedBy(Constants.SYSTEM);
-//            //updateProductDetailsToES(productDetails)
-//        }
-//        return productDetails.toString();//TODO: complete this later
-//    }
+    @Override
+    public ProductPriceResponse getProductPriceHistory(ProductPriceHistoryRequest productPriceHistoryRequest) throws IOException {
+        ProductPriceResponse productPriceResponse = new ProductPriceResponse();
+
+        SearchResponse<PricePacket> search = esClient.search(s -> s
+                        .index("product-price-history")
+                        .query(q -> q
+                                .bool(b -> b
+                                        .must( m -> m
+                                                .term(t -> t
+                                                        .field("productId")
+                                                        .value(v -> v.stringValue(productPriceHistoryRequest.getProductId()))))
+                                        .filter(f -> f
+                                        .range(r -> r
+                                                .field("date")
+                                                .gte(JsonData.of("2022-10-22"))
+                                                .lte(JsonData.of("2023-10-22"))))))
+                        .source(sc -> sc
+                                .filter(sf -> sf
+                                        .includes(List.of("date", "price"))))
+                        .sort(p -> p
+                                .field(FieldSort.of(f -> f
+                                        .field("date")
+                                        .order(SortOrder.Desc)))),
+                PricePacket.class);
+
+        List<PricePacket> list = new ArrayList<>();
+        for (Hit<PricePacket> hit: search.hits().hits()) {
+            list.add(hit.source());
+        }
+        productPriceResponse.setPriceHistory(list);
+        return productPriceResponse;
+    }
 
 
 
