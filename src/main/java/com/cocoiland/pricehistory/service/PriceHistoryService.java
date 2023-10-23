@@ -45,8 +45,8 @@ public class PriceHistoryService implements PriceHistoryServiceInterface{
      * and servers the user with that data.
      * The method is also responsible to add the price of the product to the ES index if there's any change
      *
-     * @return ProductDetailsResponse
-     * @throws Exception throws generic exception
+     * @return ProductDetailsResponse => details of product like name, rating, image url, etc
+     * @throws Exception => throws generic exception
      */
     @Override
     public ProductDetailsResponse getProductDetails(String userInput) throws Exception { //TODO: handle exceptions & write advisor
@@ -58,7 +58,7 @@ public class PriceHistoryService implements PriceHistoryServiceInterface{
 
         //If user's input doesn't have a valid URL => search for product using String.
         if(!userInputDetails.getIsUrlPresent()){
-            //TODO: handle this in future => implement search on product name
+            //      TODO: handle this in future => implement search on product name
             System.out.println("Search the product using the input string");
             return null;
 //            throw new RuntimeException("No supported URL found! Please check your input");
@@ -91,10 +91,10 @@ public class PriceHistoryService implements PriceHistoryServiceInterface{
             boolean isPriceUpdated = addProductCurrentPriceToES(productIdAndLsp.getLsp(), productDetails.getId());
             //adding the updated price to product details index for tracking purpose
             if (isPriceUpdated) {
-                HashMap jsonMap = new HashMap();
+                HashMap<String, Double> jsonMap = new HashMap<String, Double>();
                 jsonMap.put("lsp", productIdAndLsp.getLsp());
 
-                UpdateResponse response = esClient.update(u -> u
+                UpdateResponse<ProductDetails> response = esClient.update(u -> u
                                 .index(productDetailsIndex)
                                 .id(productDetails.getId())
                                 .doc(jsonMap),
@@ -199,7 +199,7 @@ public class PriceHistoryService implements PriceHistoryServiceInterface{
         return productDetailsResponse;
     }
     private void updateProductDetailsToES(ProductDetails fetchedProductDetails) throws IOException {
-        UpdateResponse response = esClient.update(u -> u
+        UpdateResponse<ProductDetails> response = esClient.update(u -> u
                 .index(productDetailsIndex) //TODO: replace this value with variable
                 .id(fetchedProductDetails.getId())
                 .doc(fetchedProductDetails),
@@ -246,7 +246,7 @@ public class PriceHistoryService implements PriceHistoryServiceInterface{
      * and servers the user with that data.
      *
      * @return ProductPriceResponse => list of product price & date objects
-     * @throws Exception throws generic exception
+     * @throws Exception => throws generic exception
      */
     @Override
     public ProductPriceResponse getProductPriceHistory(ProductPriceHistoryRequest productPriceHistoryRequest) throws Exception {
