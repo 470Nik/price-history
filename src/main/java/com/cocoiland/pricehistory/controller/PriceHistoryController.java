@@ -26,13 +26,13 @@ public class PriceHistoryController {
 
     @GetMapping(value = "product-details")
     public @ResponseBody
-    ResponseEntity<Object> getProductDetails(@Validated @RequestBody UserInput eqChartData) throws IOException {
+    ResponseEntity<Object> getProductDetails(@Validated @RequestBody UserInput eqChartData) throws Exception {
         return new ResponseEntity<>(priceHistoryService.getProductDetails(eqChartData.getUserInput()), HttpStatus.OK);
     }
 
     @GetMapping(value = "product-price-history")
     public @ResponseBody
-    ResponseEntity<Object> getProductPriceHistory(@Validated @RequestBody ProductPriceHistoryRequest productPriceHistoryRequest) throws IOException {
+    ResponseEntity<Object> getProductPriceHistory(@Validated @RequestBody ProductPriceHistoryRequest productPriceHistoryRequest) throws Exception {
         return new ResponseEntity<>(priceHistoryService.getProductPriceHistory(productPriceHistoryRequest), HttpStatus.OK);
     }
 }

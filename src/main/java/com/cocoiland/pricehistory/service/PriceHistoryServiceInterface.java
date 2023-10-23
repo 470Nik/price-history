@@ -8,8 +8,8 @@ import java.io.IOException;
 
 public interface PriceHistoryServiceInterface {
 
-    ProductDetailsResponse getProductDetails(String input) throws IOException;
+    ProductDetailsResponse getProductDetails(String input) throws Exception;
 
-    ProductPriceResponse getProductPriceHistory(ProductPriceHistoryRequest productPriceHistoryRequest) throws IOException;
+    ProductPriceResponse getProductPriceHistory(ProductPriceHistoryRequest productPriceHistoryRequest) throws Exception;
 
 }

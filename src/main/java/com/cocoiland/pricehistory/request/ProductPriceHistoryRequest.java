@@ -1,5 +1,7 @@
 package com.cocoiland.pricehistory.request;
 
+import com.cocoiland.pricehistory.constants.Constants;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -17,15 +19,17 @@ import java.time.LocalDate;
 public class ProductPriceHistoryRequest {
     @NotEmpty
     @NotNull
-    @JsonProperty("product_id")
+    @JsonProperty(Constants.PRODUCT_ID)
     private String productId;
 
     @NotNull
-    @JsonProperty("from_date")
+    @JsonProperty(Constants.FROM_DATE)
+    @JsonFormat(pattern = Constants.DATE_FORMAT)
     private LocalDate fromDate;
 
-    @JsonProperty("to_date")
     @NotNull
+    @JsonProperty(Constants.TO_DATE)
+    @JsonFormat(pattern = Constants.DATE_FORMAT)
     private LocalDate toDate;
 
 }

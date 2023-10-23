@@ -1,5 +1,6 @@
 package com.cocoiland.pricehistory.request;
 
+import com.cocoiland.pricehistory.constants.Constants;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -14,8 +15,8 @@ import javax.validation.constraints.NotNull;
 @AllArgsConstructor
 @Validated
 public class UserInput {
-    @NotNull(message = "User input can't be null")
-    @NotEmpty(message = "User input can't be empty")
-    @JsonProperty("input")
+    @NotNull(message = Constants.INPUT_NULL)
+    @NotEmpty(message = Constants.INPUT_EMPTY)
+    @JsonProperty(Constants.INPUT)
     private String userInput;
 }
