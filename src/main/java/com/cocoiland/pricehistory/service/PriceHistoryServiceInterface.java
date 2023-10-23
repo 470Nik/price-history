@@ -10,6 +10,6 @@ public interface PriceHistoryServiceInterface {
 
     ProductDetailsResponse getProductDetails(String input) throws Exception;
 
-    ProductPriceResponse getProductPriceHistory(ProductPriceHistoryRequest productPriceHistoryRequest) throws Exception;
+    ProductPriceHistoryRequest getProductPriceHistory(ProductPriceHistoryRequest productPriceHistoryRequest) throws Exception;
 
 }

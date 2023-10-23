@@ -12,6 +12,8 @@ public final class Constants {
     public static final String DATE_FORMAT = "yyyy-MM-dd";
     public static final String INPUT_NULL = "Input can't be null";
     public static final String INPUT_EMPTY = "Input can't be empty";
+    public static final String CANT_BE_NULL= " can't be null";
+    public static final String CANT_BE_EMPTY = " can't be empty";
     public static final String INPUT = "input";
     public static final String DATE = "date";
     public static final String PRICE = "price";
@@ -20,4 +22,11 @@ public final class Constants {
     public static final String PID = "pid";
     public static final String PLATFORM = "platform";
     public static final String UNDERSCORE = "_";
+    public static final String PRODUCTID = "productId";
+    public static final String SPACE = " ";
+    public static final String LSP = "lsp";
+
+
+    //Errors & Exceptions
+    public static final String ES_ERROR_OCCURRED = "Request couldn't be executed...Please try again";
 }

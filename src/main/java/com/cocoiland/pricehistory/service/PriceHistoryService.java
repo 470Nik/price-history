@@ -1,10 +1,12 @@
 package com.cocoiland.pricehistory.service;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.elasticsearch._types.FieldSort;
 import co.elastic.clients.elasticsearch._types.Result;
 import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch.core.CreateResponse;
+import co.elastic.clients.elasticsearch.core.SearchRequest;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.UpdateResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
@@ -15,6 +17,7 @@ import com.cocoiland.pricehistory.dto.ProductPriceDto;
 import com.cocoiland.pricehistory.dto.UserInputDetails;
 import com.cocoiland.pricehistory.entity.ProductDetails;
 import com.cocoiland.pricehistory.enums.Platform;
+import com.cocoiland.pricehistory.exceptions.ESException;
 import com.cocoiland.pricehistory.request.ProductPriceHistoryRequest;
 import com.cocoiland.pricehistory.response.PricePacket;
 import com.cocoiland.pricehistory.response.ProductDetailsResponse;
@@ -82,6 +85,7 @@ public class PriceHistoryService implements PriceHistoryServiceInterface{
         }
         //If the product details are outdated => update it.
         else if(productDetails.getUpdatedAt() == null || TimeUnit.MILLISECONDS.toDays(new Date().getTime() - productDetails.getUpdatedAt().getTime()) >= Constants.PRODUCT_DETAILS_UPDATE_INTERVAL_IN_DAYS){
+
             return scrapeProductDetailsAndUpdateToES(ecommerceSite, productDetails, productIdAndLsp, productDetailsResponse);
         }
 
@@ -92,7 +96,7 @@ public class PriceHistoryService implements PriceHistoryServiceInterface{
             //adding the updated price to product details index for tracking purpose
             if (isPriceUpdated) {
                 HashMap<String, Double> jsonMap = new HashMap<String, Double>();
-                jsonMap.put("lsp", productIdAndLsp.getLsp());
+                jsonMap.put(Constants.LSP, productIdAndLsp.getLsp());
 
                 UpdateResponse<ProductDetails> response = esClient.update(u -> u
                                 .index(productDetailsIndex)
@@ -157,7 +161,8 @@ public class PriceHistoryService implements PriceHistoryServiceInterface{
         }
         return null;
     }
-    private ProductDetailsResponse scrapeProductDetailsAndAddToEs(EcommerceSite ecommerceSite, ProductIdAndLsp productIdAndLsp, ProductDetailsResponse productDetailsResponse) throws IOException {
+    private ProductDetailsResponse scrapeProductDetailsAndAddToEs(EcommerceSite ecommerceSite, ProductIdAndLsp productIdAndLsp,
+                                                                  ProductDetailsResponse productDetailsResponse) throws IOException {
         //scrape product details from ecommerceSite
         ProductDetails fetchedProductDetails = ecommerceSite.getProductDetailsFromEcommerceSite();
         fetchedProductDetails.setPlatform(Platform.FLIPKART_COM.getUrl());
@@ -178,7 +183,9 @@ public class PriceHistoryService implements PriceHistoryServiceInterface{
         BeanUtils.copyProperties(fetchedProductDetails, productDetailsResponse);
         return productDetailsResponse;
     }
-    private ProductDetailsResponse scrapeProductDetailsAndUpdateToES(EcommerceSite ecommerceSite, ProductDetails productDetails, ProductIdAndLsp productIdAndLsp,ProductDetailsResponse productDetailsResponse) throws IOException {
+    private ProductDetailsResponse scrapeProductDetailsAndUpdateToES(EcommerceSite ecommerceSite, ProductDetails productDetails,
+                                                                     ProductIdAndLsp productIdAndLsp,
+                                                                     ProductDetailsResponse productDetailsResponse) throws IOException {
         ProductDetails fetchedProductDetails = ecommerceSite.getProductDetailsFromEcommerceSite();
         productDetails.setRating(fetchedProductDetails.getRating());
         productDetails.setName(fetchedProductDetails.getName());
@@ -200,7 +207,7 @@ public class PriceHistoryService implements PriceHistoryServiceInterface{
     }
     private void updateProductDetailsToES(ProductDetails fetchedProductDetails) throws IOException {
         UpdateResponse<ProductDetails> response = esClient.update(u -> u
-                .index(productDetailsIndex) //TODO: replace this value with variable
+                .index(productDetailsIndex)
                 .id(fetchedProductDetails.getId())
                 .doc(fetchedProductDetails),
                 ProductDetails.class);
@@ -235,50 +242,67 @@ public class PriceHistoryService implements PriceHistoryServiceInterface{
     //then, it will be converted to: "flipkart.com/abcd"
     private String cleanUrl(String input, int startingIndex) {
         input = input.substring(startingIndex);
-        int garbage_index = input.indexOf(" ");
+        int garbage_index = input.indexOf(Constants.SPACE);
         if(garbage_index == -1)
             return input;
         return input.substring(0, garbage_index);
     }
 
     /**
-     * This method fetches the product price details from Elasticsearch
+     * Fetches the product price details from Elasticsearch
      * and servers the user with that data.
      *
      * @return ProductPriceResponse => list of product price & date objects
-     * @throws Exception => throws generic exception
+     * @throws Exception => throws exception
      */
     @Override
-    public ProductPriceResponse getProductPriceHistory(ProductPriceHistoryRequest productPriceHistoryRequest) throws Exception {
-        ProductPriceResponse productPriceResponse = new ProductPriceResponse();
+    public ProductPriceHistoryRequest getProductPriceHistory(ProductPriceHistoryRequest productPriceHistoryRequest) throws Exception {
+        System.out.println(productPriceHistoryRequest.toString());
+        return productPriceHistoryRequest;
+//        ProductPriceResponse productPriceResponse = new ProductPriceResponse();
+//        SearchRequest searchRequest = getProductPriceHistorySearchRequest(productPriceHistoryRequest);
+//        try {
+//            SearchResponse<PricePacket> search = esClient.search(searchRequest, PricePacket.class);
+//            if (search != null) {
+//                List<PricePacket> list = new ArrayList<>();
+//                for (Hit<PricePacket> hit : search.hits().hits()) {
+//                    list.add(hit.source());
+//                }
+//                productPriceResponse.setPriceHistory(list);
+//            }
+//        } catch (IOException e) {
+//            throw e;
+//        }
+//        catch (Exception e) {
+//            System.out.println("NIK: "  + productPriceHistoryRequest.toString() + "Some ES issue here:" + e.toString());
+//            throw new RuntimeException("Error fetching price data from ES", e);
+//        }
+//
+//        return productPriceResponse;
+    }
 
-        SearchResponse<PricePacket> search = esClient.search(s -> s
-                        .index(productPriceIndex)
-                        .query(q -> q
-                                .bool(b -> b
-                                        .must( m -> m
-                                                .term(t -> t
-                                                        .field("productId")
-                                                        .value(v -> v.stringValue(productPriceHistoryRequest.getProductId()))))
-                                        .filter(f -> f
+    private SearchRequest getProductPriceHistorySearchRequest(ProductPriceHistoryRequest productPriceHistoryRequest) {
+        SearchRequest.Builder searchRequestBuilder = new SearchRequest.Builder()
+                .index(productPriceIndex)
+                .query(q -> q
+                        .bool(b -> b
+                                .must(m -> m
+                                        .term(t -> t
+                                                .field(Constants.PRODUCTID)
+                                                .value(v -> v.stringValue(productPriceHistoryRequest.getProductId()))))
+                                .filter(f -> f
                                         .range(r -> r
-                                                .field("date")
-                                                .gte(JsonData.of("2022-10-22"))
-                                                .lte(JsonData.of("2023-10-22"))))))
-                        .source(sc -> sc
-                                .filter(sf -> sf
-                                        .includes(List.of("date", "price"))))
-                        .sort(p -> p
-                                .field(FieldSort.of(f -> f
-                                        .field("date")
-                                        .order(SortOrder.Desc)))),
-                PricePacket.class);
+                                                .field(Constants.DATE)
+                                                .gte(JsonData.of(productPriceHistoryRequest.getFromDate()))
+                                                .lte(JsonData.of(productPriceHistoryRequest.getToDate()))))))
+                .source(sc -> sc
+                        .filter(sf -> sf
+                                .includes(List.of(Constants.DATE, Constants.PRICE))))
+                .sort(p -> p
+                        .field(FieldSort.of(f -> f
+                                .field(Constants.DATE)
+                                .order(SortOrder.Desc))));
 
-        List<PricePacket> list = new ArrayList<>();
-        for (Hit<PricePacket> hit: search.hits().hits()) {
-            list.add(hit.source());
-        }
-        productPriceResponse.setPriceHistory(list);
-        return productPriceResponse;
+        return searchRequestBuilder.build();
     }
 }

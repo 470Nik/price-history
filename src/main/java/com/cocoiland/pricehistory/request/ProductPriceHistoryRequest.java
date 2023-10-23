@@ -17,17 +17,17 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @Validated
 public class ProductPriceHistoryRequest {
-    @NotEmpty
-    @NotNull
     @JsonProperty(Constants.PRODUCT_ID)
+    @NotEmpty(message = Constants.PRODUCT_ID + Constants.CANT_BE_EMPTY)
+    @NotNull(message = Constants.PRODUCT_ID + Constants.CANT_BE_NULL)
     private String productId;
 
-    @NotNull
+    @NotNull(message = Constants.FROM_DATE + Constants.CANT_BE_NULL)
     @JsonProperty(Constants.FROM_DATE)
     @JsonFormat(pattern = Constants.DATE_FORMAT)
     private LocalDate fromDate;
 
-    @NotNull
+    @NotNull(message = Constants.TO_DATE + Constants.CANT_BE_NULL)
     @JsonProperty(Constants.TO_DATE)
     @JsonFormat(pattern = Constants.DATE_FORMAT)
     private LocalDate toDate;

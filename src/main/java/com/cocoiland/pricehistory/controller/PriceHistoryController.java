@@ -9,7 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
+import javax.validation.Valid;
 
 @RestController
 @Validated
@@ -26,13 +26,13 @@ public class PriceHistoryController {
 
     @GetMapping(value = "product-details")
     public @ResponseBody
-    ResponseEntity<Object> getProductDetails(@Validated @RequestBody UserInput eqChartData) throws Exception {
+    ResponseEntity<Object> getProductDetails(@Valid @RequestBody UserInput eqChartData) throws Exception {
         return new ResponseEntity<>(priceHistoryService.getProductDetails(eqChartData.getUserInput()), HttpStatus.OK);
     }
 
     @GetMapping(value = "product-price-history")
     public @ResponseBody
-    ResponseEntity<Object> getProductPriceHistory(@Validated @RequestBody ProductPriceHistoryRequest productPriceHistoryRequest) throws Exception {
+    ResponseEntity<Object> getProductPriceHistory(@Valid @RequestBody ProductPriceHistoryRequest productPriceHistoryRequest) throws Exception {
         return new ResponseEntity<>(priceHistoryService.getProductPriceHistory(productPriceHistoryRequest), HttpStatus.OK);
     }
 }
