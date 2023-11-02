@@ -19,7 +19,7 @@ public class ProductDetails {
     private String description;
     private Float rating;
     private String imageUrl;
-    private Date lspUpdatedAt;
+    private Double lsp;
     private Date createdAt;
     private String createdBy;
     private Date updatedAt;

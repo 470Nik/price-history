@@ -1,5 +1,6 @@
 package com.cocoiland.pricehistory.util;
 
+import com.cocoiland.pricehistory.constants.Constants;
 import com.cocoiland.pricehistory.dto.UserInputDetails;
 import com.cocoiland.pricehistory.util.ecom.Amazon_in;
 import com.cocoiland.pricehistory.util.ecom.EcommerceSite;
@@ -16,10 +17,10 @@ public class EcommerceSiteFactory {
         switch (userInputDetails.getPlatform()) {
             case FLIPKART_COM:
                 return new Flipkart_in(userInputDetails.getUrl());
-            case AMAZON_IN:
-                return new Amazon_in(userInputDetails.getUrl());
+//            case AMAZON_IN:
+//                return new Amazon_in(userInputDetails.getUrl());
             default:
-                throw new IllegalArgumentException("Unsupported shopping site");
+                throw new IllegalArgumentException(Constants.UNSUPPORTED_SHOPPING_SITE);
         }
 
     }

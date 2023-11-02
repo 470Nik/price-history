@@ -1,7 +1,6 @@
 package com.cocoiland.pricehistory.util.ecom;
 
 import com.cocoiland.pricehistory.dto.ProductIdAndLsp;
-import com.cocoiland.pricehistory.dto.UserInputDetails;
 import com.cocoiland.pricehistory.entity.ProductDetails;
 import org.apache.commons.lang3.StringUtils;
 import org.jsoup.Jsoup;

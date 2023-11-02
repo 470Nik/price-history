@@ -1,13 +1,20 @@
 package com.cocoiland.pricehistory.request;
 
+import com.cocoiland.pricehistory.constants.Constants;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateDeserializer;
+import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateSerializer;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
+
 import java.time.LocalDate;
 
 @Data
@@ -15,17 +22,23 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @Validated
 public class ProductPriceHistoryRequest {
-    @NotEmpty
-    @NotNull
-    @JsonProperty("product_id")
+    @JsonProperty(Constants.PRODUCT_ID)
+    @NotEmpty(message = Constants.PRODUCT_ID + Constants.CANT_BE_EMPTY)
+    @NotNull(message = Constants.PRODUCT_ID + Constants.CANT_BE_NULL)
     private String productId;
 
-    @NotNull
-    @JsonProperty("from_date")
+    @NotNull(message = Constants.FROM_DATE + Constants.CANT_BE_NULL)
+    @JsonProperty(Constants.FROM_DATE)
+    @JsonFormat(pattern = Constants.DATE_FORMAT)
+    @JsonDeserialize(using = LocalDateDeserializer.class)
+    @JsonSerialize(using = LocalDateSerializer.class)
     private LocalDate fromDate;
 
-    @JsonProperty("to_date")
-    @NotNull
+    @NotNull(message = Constants.TO_DATE + Constants.CANT_BE_NULL)
+    @JsonProperty(Constants.TO_DATE)
+    @JsonFormat(pattern = Constants.DATE_FORMAT)
+    @JsonDeserialize(using = LocalDateDeserializer.class)
+    @JsonSerialize(using = LocalDateSerializer.class)
     private LocalDate toDate;
 
 }

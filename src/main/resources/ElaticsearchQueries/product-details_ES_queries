@@ -3,7 +3,7 @@ PUT /product-details
 {
   "settings": {
     "number_of_shards": 1,
-    "number_of_replicas": 2
+    "number_of_replicas": 1
   },
   "mappings": {
     "properties": {
@@ -27,6 +27,9 @@ PUT /product-details
       },
       "imageUrl": {
         "type": "text"
+      },
+      "lsp": {
+        "type": "double"
       },
       "createdAt": {
         "type": "date"
@@ -59,17 +62,21 @@ POST /_aliases
 }
 
 
-//Inserting documents into the index
-POST /product-details/_doc/flipkart_in_7894561230514
+
+//Creating product-price-history
+PUT /product-price-history
 {
-  "platform": "flipkart_in",
-  "pid": "7894561230514",
-  "name": "Product Name",
-  "description": "Product Description",
-  "rating": 4.5,
-  "imageUrl": "http://example.com/image.jpg",
-  "createdAt": "2023-10-11T12:00:00",
-  "createdBy": "User123",
-  "updatedAt": "2023-10-11T14:30:00",
-  "updatedBy": "User456"
+  "mappings": {
+    "properties": {
+      "productId": {
+        "type": "keyword"
+      },
+      "date": {
+        "type": "date"
+      },
+      "price": {
+        "type": "double"
+      }
+    }
+  }
 }

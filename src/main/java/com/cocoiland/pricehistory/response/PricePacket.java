@@ -1,6 +1,7 @@
 package com.cocoiland.pricehistory.response;
 
 
+import com.cocoiland.pricehistory.constants.Constants;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
@@ -8,7 +9,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.sql.Timestamp;
 import java.util.Date;
 
 @Data
@@ -18,8 +18,8 @@ import java.util.Date;
 public class PricePacket {
     @JsonIgnore
     private String productId;
-    @JsonProperty("date")
+    @JsonProperty(Constants.DATE)
     private Date date;
-    @JsonProperty("price")
+    @JsonProperty(Constants.PRICE)
     private Double price;
 }

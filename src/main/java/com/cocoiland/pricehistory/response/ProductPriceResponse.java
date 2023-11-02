@@ -1,5 +1,6 @@
 package com.cocoiland.pricehistory.response;
 
+import com.cocoiland.pricehistory.constants.Constants;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -11,6 +12,6 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ProductPriceResponse {
-    @JsonProperty("price_history")
+    @JsonProperty(Constants.PRICE_HISTORY)
     List<PricePacket> priceHistory;
 }
