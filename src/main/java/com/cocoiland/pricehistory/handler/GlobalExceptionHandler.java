@@ -2,6 +2,7 @@ package com.cocoiland.pricehistory.handler;
 
 import com.cocoiland.pricehistory.constants.Constants;
 import com.cocoiland.pricehistory.exceptions.ESException;
+import com.cocoiland.pricehistory.exceptions.EntityNotFoundException;
 import com.cocoiland.pricehistory.exceptions.ServiceException;
 import com.fasterxml.jackson.core.JsonParseException;
 import org.springframework.http.HttpStatus;
@@ -20,8 +21,6 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler extends DefaultHandlerExceptionResolver {
 
-    //TODO: remove error from documentation of exception handlers
-
     /**
      * Handle errors related to invalid method argument exceptions
      *
@@ -39,6 +38,24 @@ public class GlobalExceptionHandler extends DefaultHandlerExceptionResolver {
 
         return errors;
     }
+
+    /**
+     * Handle errors related to resource not found
+     *
+     * @param e EntityNotFoundException type exceptions
+     * @return  Map<String, String> => map containing error
+     */
+    @ExceptionHandler({EntityNotFoundException.class})
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ResponseBody
+    public Map<String, String> handleEntityNotFoundException(EntityNotFoundException e) {
+        Map<String, String> errors = new HashMap<>();
+        errors.put("message ", Constants.ENTITY_NOT_FOUND);
+
+        return errors;
+    }
+
+
     /**
      * Handle errors related to exceptions in Service
      *
@@ -48,7 +65,7 @@ public class GlobalExceptionHandler extends DefaultHandlerExceptionResolver {
     @ExceptionHandler({ServiceException.class})
     public ResponseEntity<Object> handleServiceException(ServiceException e) {
         Map<String, Object> body = new HashMap<>();
-        body.put("message", Constants.SOMETHING_WENT_WRONG);
+        body.put(Constants.MESSAGE, Constants.SOMETHING_WENT_WRONG);
         return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
@@ -61,7 +78,7 @@ public class GlobalExceptionHandler extends DefaultHandlerExceptionResolver {
     @ExceptionHandler({ESException.class})
     public ResponseEntity<Object> handleElasticSearchException(ESException e) {
         Map<String, Object> body = new HashMap<>();
-        body.put("message", Constants.ES_ERROR_OCCURRED);
+        body.put(Constants.MESSAGE, Constants.ES_ERROR_OCCURRED);
         return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
@@ -76,16 +93,22 @@ public class GlobalExceptionHandler extends DefaultHandlerExceptionResolver {
     @ResponseBody
     public Map<String, String> handleJsonParseException(JsonParseException e) {
         Map<String, String> body = new HashMap<>();
-        body.put("message", "Invalid request, Please check input values");
+        body.put(Constants.MESSAGE, "Invalid request, Please check input values");
         return body;
     }
 
+    /**
+     * Handle errors related to date parse exceptions
+     *
+     * @param e DateTimeParseException type exceptions
+     * @return Map<String, String> => map containing fields and their error messages
+     */
     @ExceptionHandler(DateTimeParseException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ResponseBody
     public Map<String, String> handleDateTimeParseException(DateTimeParseException e) {
         Map<String, String> body = new HashMap<>();
-        body.put("message", "Invalid date format found, accepted date format is " + Constants.DATE_FORMAT);
+        body.put(Constants.MESSAGE, Constants.INVALID_DATE_FORMAT_FOUND + Constants.DATE_FORMAT);
         return body;
     }
 }

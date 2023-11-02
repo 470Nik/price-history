@@ -28,6 +28,7 @@ import com.cocoiland.pricehistory.util.ecom.EcommerceSite;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -39,8 +40,10 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class PriceHistoryService implements PriceHistoryServiceInterface{
 
-    public final String productDetailsIndex = "product-details";
-    public final String productPriceIndex = "product-price-history";
+    @Value("${es.product.details.index}")
+    public String productDetailsIndex;
+    @Value("${es.product.price.details.index}")
+    public String productPriceIndex;
 
     @Autowired
     ElasticsearchClient esClient;
