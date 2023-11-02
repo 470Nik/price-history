@@ -1,0 +1,82 @@
+//Creating product-details index
+PUT /product-details
+{
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 1
+  },
+  "mappings": {
+    "properties": {
+      "id": {
+        "type": "keyword"
+      },
+      "platform": {
+        "type": "keyword"
+      },
+      "pid": {
+        "type": "keyword"
+      },
+      "name": {
+        "type": "text"
+      },
+      "description": {
+        "type": "text"
+      },
+      "rating": {
+        "type": "float"
+      },
+      "imageUrl": {
+        "type": "text"
+      },
+      "lsp": {
+        "type": "double"
+      },
+      "createdAt": {
+        "type": "date"
+      },
+      "createdBy": {
+        "type": "keyword"
+      },
+      "updatedAt": {
+        "type": "date"
+      },
+      "updatedBy": {
+        "type": "keyword"
+      }
+    }
+  }
+}
+
+
+//Creating Alias of the given ES index (product-details)
+POST /_aliases
+{
+  "actions": [
+    {
+      "add": {
+        "index": "product-details",
+        "alias": "product-details-alias"
+      }
+    }
+  ]
+}
+
+
+
+//Creating product-price-history
+PUT /product-price-history
+{
+  "mappings": {
+    "properties": {
+      "productId": {
+        "type": "keyword"
+      },
+      "date": {
+        "type": "date"
+      },
+      "price": {
+        "type": "double"
+      }
+    }
+  }
+}
