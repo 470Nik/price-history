@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 public enum Platform {
     FLIPKART_COM("flipkart.com"),
     AMAZON_IN("amazon.in");
+    //can add many more
 
     private final String url;
 
